@@ -1,0 +1,166 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: morse-code
+data:
+  morse.csv: |
+    char,morse
+    A,.-
+    B,-...
+    C,-.-.
+    D,-..
+    E,.
+    F,..-.
+    G,--.
+    H,....
+    I,..
+    J,.---
+    K,-.-
+    L,.-..
+    M,--
+    N,-.
+    O,---
+    P,.--.
+    Q,--.-
+    R,.-.
+    S,...
+    T,-
+    U,..-
+    V,...-
+    W,.--
+    X,-..-
+    Y,-.--
+    Z,--..
+    0,-----
+    1,.----
+    2,..---
+    3,...--
+    4,....-
+    5,.....
+    6,-....
+    7,--...
+    8,---..
+    9,----.
+    .,.-.-.-
+    ,,--..--
+    ?,..--..
+    !,---.
+    /,--..-.
+    (,-.--.
+    ),-.--.-
+    &,.-...
+    =,-...-
+    +,.-.-.
+    -,....-
+    _,..--.-
+    ",.-..-.
+    :,---...
+    ;,.-.-.-
+    @,.--.-.
+    SPACE,/
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: morse-decoder
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: morse-decoder:latest
+  source:
+    git:
+      uri: https://gitea-gitea.apps.cluster-fcdlf.fcdlf.sandbox2074.opentlc.com/starter
+      ref: main
+    contextDir: .
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: python:3.11
+        namespace: openshift
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: morse-decoder
+spec:
+  lookupPolicy:
+    local: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: morse-decoder
+  labels:
+    app: morse-decoder
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: morse-decoder
+  template:
+    metadata:
+      labels:
+        app: morse-decoder
+    spec:
+      containers:
+      - name: morse-decoder
+        image: morse-decoder:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        volumeMounts:
+        - name: morse-config
+          mountPath: /etc/morse-code
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: morse-config
+        configMap:
+          name: morse-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: morse-decoder-service
+  labels:
+    app: morse-decoder
+spec:
+  selector:
+    app: morse-decoder
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: morse-decoder-route
+  labels:
+    app: morse-decoder
+spec:
+  host: morse-playerX.apps.cluster-fcdlf.fcdlf.sandbox2074.opentlc.com
+  to:
+    kind: Service
+    name: morse-decoder-service
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge 

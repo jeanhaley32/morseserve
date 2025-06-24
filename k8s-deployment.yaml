@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: morse-decoder
+  labels:
+    app: morse-decoder
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: morse-decoder
+  template:
+    metadata:
+      labels:
+        app: morse-decoder
+    spec:
+      containers:
+      - name: morse-decoder
+        image: morse-decoder:latest
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: morse-config
+          mountPath: /etc/morse-code
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: morse-config
+        configMap:
+          name: morse-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: morse-decoder-service
+  labels:
+    app: morse-decoder
+spec:
+  selector:
+    app: morse-decoder
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: morse-decoder-route
+  labels:
+    app: morse-decoder
+spec:
+  host: morse-playerX.apps.cluster-fcdlf.fcdlf.sandbox2074.opentlc.com
+  to:
+    kind: Service
+    name: morse-decoder-service
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge 
