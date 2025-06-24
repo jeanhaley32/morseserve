@@ -88,14 +88,28 @@ def load_from_csv(file):
     """Load Morse mapping from CSV file"""
     reader = csv.DictReader(file)
     for row in reader:
-        char = row['char'].strip()
-        morse = row['morse'].strip()
+        char = row.get('char')
+        morse = row.get('morse')
+        if not char or not morse:
+            continue  # Skip rows with missing data
+        char = char.strip()
+        morse = morse.strip()
         if char == 'SPACE':
             morse_mapping[' '] = morse
         else:
             morse_mapping[char] = morse
+    
     # Debug: print some loaded mappings
     logger.info(f"Loaded mappings: A->{morse_mapping.get('A', 'NOT FOUND')}, E->{morse_mapping.get('E', 'NOT FOUND')}, S->{morse_mapping.get('S', 'NOT FOUND')}, COLON->{morse_mapping.get(':', 'NOT FOUND')}")
+    
+    # Debug: check if colon mapping exists
+    if ':' in morse_mapping:
+        logger.info(f"Colon mapping found: ':' -> '{morse_mapping[':']}'")
+    else:
+        logger.warning("Colon mapping NOT found!")
+        # Let's add it manually
+        morse_mapping[':'] = '---...'
+        logger.info("Added colon mapping manually: ':' -> '---...'")
 
 def morse_to_text(morse_message):
     """Convert Morse code to text"""
