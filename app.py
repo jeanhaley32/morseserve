@@ -94,11 +94,17 @@ def load_from_csv(file):
             morse_mapping[' '] = morse
         else:
             morse_mapping[char] = morse
+    
+    # Debug: print some loaded mappings
+    logger.info(f"Loaded mappings: A->{morse_mapping.get('A', 'NOT FOUND')}, E->{morse_mapping.get('E', 'NOT FOUND')}, S->{morse_mapping.get('S', 'NOT FOUND')}")
 
 def morse_to_text(morse_message):
     """Convert Morse code to text"""
     # Create reverse mapping
     reverse_mapping = {v: k for k, v in morse_mapping.items()}
+    
+    # Debug: print the reverse mapping to see what we have
+    logger.info(f"Reverse mapping keys: {list(reverse_mapping.keys())[:10]}...")
     
     # Split by word boundaries (slashes)
     words = morse_message.split(' / ')
