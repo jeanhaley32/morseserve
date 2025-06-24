@@ -27,6 +27,31 @@ def load_morse_mapping():
         # Fallback to default mapping for development
         logger.info("ConfigMap not found, using default Morse mapping")
         default_mapping = """char,morse
+!,---.
+$,...-..-
+&,.-...
+',.----.
+(,-.--.
+),-.--.-
++,.-.-.
+-,-....-
+.,.-.-.-
+/,-..-.
+0,-----
+1,.----
+2,..---
+3,...--
+4,....-
+5,.....
+6,-....
+7,--...
+8,---..
+9,----.
+:,---...
+;,-.-.-.
+=,-...-
+?,..--..
+@,.--.-.
 A,.-
 B,-...
 C,-.-.
@@ -53,32 +78,7 @@ W,.--
 X,-..-
 Y,-.--
 Z,--..
-0,-----
-1,.----
-2,..---
-3,...--
-4,....-
-5,.....
-6,-....
-7,--...
-8,---..
-9,----.
-.,.-.-.-
-,,--..--
-?,..--..
-!,---.
-/,--..-.
-(,-.--.
-),-.--.-
-&,.-...
-=,-...-
-+,.-.-.
--,....-
 _,..--.-
-",.-..-.
-:,---...
-;,.-.-.-
-@,.--.-.
 SPACE,/"""
         
         csv_file = io.StringIO(default_mapping)
@@ -110,6 +110,19 @@ def load_from_csv(file):
         # Let's add it manually
         morse_mapping[':'] = '---...'
         logger.info("Added colon mapping manually: ':' -> '---...'")
+    
+    # Debug: check exclamation mark mapping
+    if '!' in morse_mapping:
+        logger.info(f"Exclamation mark mapping found: '!' -> '{morse_mapping['!']}'")
+    else:
+        logger.warning("Exclamation mark mapping NOT found!")
+        # Let's add it manually
+        morse_mapping['!'] = '---.'
+        logger.info("Added exclamation mark mapping manually: '!' -> '---.'")
+    
+    # Debug: show total mappings loaded
+    logger.info(f"Total mappings loaded: {len(morse_mapping)}")
+    logger.info(f"Sample mappings: {dict(list(morse_mapping.items())[:5])}")
 
 def morse_to_text(morse_message):
     """Convert Morse code to text"""
