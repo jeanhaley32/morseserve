@@ -130,8 +130,21 @@ class TestMorseDecoder(unittest.TestCase):
         response = self.app.post('/decode-morse',
                                data='invalid json',
                                content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 400)
+
+    def test_non_string_message_is_400_not_500(self):
+        """A non-string 'message' must be a clean 400, not a 500 leaking internals."""
+        response = self.app.post('/decode-morse',
+                               data=json.dumps({'message': 123}),
+                               content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.data)
+        self.assertIn('string', data['error'])
+        # the error body must never contain a raw Python exception detail
+        self.assertNotIn('AttributeError', data['error'])
+        self.assertNotIn("object has no attribute", data['error'])
     
     def test_unknown_morse_sequence(self):
         """Test handling of unknown Morse sequences"""
