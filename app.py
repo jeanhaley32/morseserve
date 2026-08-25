@@ -191,14 +191,18 @@ def root():
 def decode_morse():
     """Decode Morse code message and extract flag"""
     try:
-        # Get JSON input
-        data = request.get_json()
-        
-        if not data or 'message' not in data:
+        # silent=True: malformed JSON returns None instead of raising a 400 we'd
+        # otherwise catch below and mislabel as a 500.
+        data = request.get_json(silent=True)
+
+        if not isinstance(data, dict) or 'message' not in data:
             return jsonify({"error": "Missing 'message' field in JSON body"}), 400
-        
+
         morse_message = data['message']
-        
+
+        if not isinstance(morse_message, str):
+            return jsonify({"error": "'message' must be a string"}), 400
+
         if not morse_message:
             return jsonify({"error": "Message cannot be empty"}), 400
         
@@ -223,8 +227,9 @@ def decode_morse():
         return jsonify(response), 200
         
     except Exception as e:
+        # Log the detail server-side; never return it to the caller.
         logger.error(f"Error processing request: {str(e)}")
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+        return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == '__main__':
     # Load Morse mapping on startup
