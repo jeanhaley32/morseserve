@@ -21,11 +21,30 @@ class TestMorseDecoder(unittest.TestCase):
         morse_mapping.clear()
     
     def test_health_endpoint(self):
-        """Test the health check endpoint"""
+        """Test the health check endpoint reports healthy once the mapping is loaded."""
+        from app import morse_mapping
+        morse_mapping['A'] = '.-'  # a loaded mapping is what "healthy" means
         response = self.app.get('/health')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'healthy')
+
+    def test_health_endpoint_unhealthy_when_mapping_empty(self):
+        """/health must report 503 when the Morse mapping never loaded, so the
+        k8s liveness/readiness probes take a mapping-less pod out of rotation
+        instead of serving silently-degraded decodes."""
+        from app import morse_mapping
+        morse_mapping.clear()  # simulate a failed/absent ConfigMap mount
+        response = self.app.get('/health')
+        self.assertEqual(response.status_code, 503)
+        data = json.loads(response.data)
+        self.assertEqual(data['status'], 'unhealthy')
+
+    def test_extract_flag_stops_at_whitespace(self):
+        """FLAG:/flag: extraction must stop at whitespace, not swallow trailing
+        text (regression: the pattern used [^\\s] literally instead of [^\\s])."""
+        self.assertEqual(extract_flag("FLAG:abc123 and more text"), "FLAG:abc123")
+        self.assertEqual(extract_flag("here flag:xyz789 trailing"), "flag:xyz789")
     
     def test_root_endpoint(self):
         """Test the root endpoint"""

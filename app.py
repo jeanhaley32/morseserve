@@ -158,8 +158,8 @@ def extract_flag(text):
     flag_patterns = [
         r'FLAG\{[^}]+\}',  # FLAG{...}
         r'flag\{[^}]+\}',  # flag{...}
-        r'FLAG:[^\\s]+',   # FLAG: ...
-        r'flag:[^\\s]+',   # flag: ...
+        r'FLAG:[^\s]+',    # FLAG: ...
+        r'flag:[^\s]+',    # flag: ...
         r'CTF\{[^}]+\}',   # CTF{...}
         r'ctf\{[^}]+\}',   # ctf{...}
     ]
@@ -173,7 +173,15 @@ def extract_flag(text):
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint.
+
+    Reports unhealthy (503) if the Morse mapping never loaded (e.g. the
+    ConfigMap failed to mount/parse). This endpoint backs the k8s liveness
+    and readiness probes, so a 200 here on an empty mapping would keep a pod
+    in rotation while every decode silently degrades to placeholders.
+    """
+    if not morse_mapping:
+        return jsonify({"status": "unhealthy", "reason": "morse mapping not loaded"}), 503
     return jsonify({"status": "healthy"}), 200
 
 @app.route('/', methods=['GET'])
